@@ -26,12 +26,12 @@ import {
 } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAV0IWtka8EaecB0V4Co3lRfFQc7wHKdxY",
-  authDomain: "civiclens-2747e.firebaseapp.com",
-  projectId: "civiclens-2747e",
-  storageBucket: "civiclens-2747e.firebasestorage.app",
-  messagingSenderId: "260970066259",
-  appId: "1:260970066259:web:db82ff7820ff85e666b1a6",
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
