@@ -10,27 +10,7 @@ import {
 import { analyzeReport } from "../utils/analyzeReport";
 import MapPicker from "../utils/MapPicker";
 
-const CITIZEN_KEYFRAMES = `
-  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes fadeUpMsg { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
-  @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
-  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-  @keyframes bounce-icon { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
-  @keyframes slideInRight { from { transform:translateX(100%); } to { transform:translateX(0); } }
-  @keyframes slideDown { from { transform:translateY(-100%); } to { transform:translateY(0); } }
-  @keyframes scaleIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
-  .msg-enter { animation: fadeUpMsg 0.25s ease-out forwards; }
-  .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-  .animate-slide-in-right { animation: slideInRight 0.35s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
-  .animate-slide-down { animation: slideDown 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-  .animate-float { animation: float 3s ease-in-out infinite; }
-  .animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
-  .animate-shimmer { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
-  .animate-bounce-icon { animation: bounce-icon 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-  .animate-scale-tap:active { transform: scale(0.98); }
-  .animate-scale-bounce:active { transform: scale(1.4); animation: bounce-icon 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-`;
+
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -720,90 +700,80 @@ function ReportCard({ report, currentUser, denyingId, onDenyClick }) {
   const dotCls = status.dotCls ?? "bg-gray-500";
 
   return (
-    <div
-      className={`bg-white rounded-3xl border border-gray-100 border-l-4 ${deptBorderCls(report.issueType)} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] md:hover:shadow-md`}
-    >
-      <div className="p-4 flex flex-col gap-2">
-        {/* Row 1: ID + Status + time */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-mono text-gray-400">{report.reportId || "RPT"}</span>
-          <span className={`flex items-center gap-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${status.cls}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${dotCls}`} />
-            {status.label}
-          </span>
-          <span className="text-[10px] text-gray-400 ml-auto">{timeAgo(report.timestamp)}</span>
+    <div className="relative group overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-1">
+      {/* Subtle background gradient matching the department */}
+      <div className={`absolute top-0 left-0 w-1.5 h-full ${deptBorderCls(report.issueType).replace('border-l-', 'bg-')}`} />
+      
+      <div className="p-5 flex flex-col gap-3 ml-1">
+        {/* Header: Status & Time */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{report.reportId || "RPT"}</span>
+            <span className={`flex items-center gap-1.5 text-[10px] font-bold tracking-wide rounded-full px-2.5 py-0.5 ${status.cls}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${dotCls} shadow-sm`} />
+              {status.label.toUpperCase()}
+            </span>
+          </div>
+          <span className="text-xs font-medium text-gray-400">{timeAgo(report.timestamp)}</span>
         </div>
 
-        {/* Row 2: Issue badge + severity badge + photo */}
-        <div className="flex items-start gap-3">
+        {/* Content: Image & Text */}
+        <div className="flex items-start gap-4">
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${issueBadgeCls(report.issueType)}`}>
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className={`text-xs font-bold rounded-lg px-2.5 py-1 shadow-sm ${issueBadgeCls(report.issueType)}`}>
                 {ISSUE_LABELS[report.issueType] ?? "📋 Other"}
               </span>
-              <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${severityCls(sevScore)}`}>
+              <span className={`text-[10px] font-bold rounded-lg px-2 py-1 border ${severityCls(sevScore).replace('bg-', 'bg-transparent border-').replace('text-', 'text-')}`}>
                 Sev {sevScore}/10
               </span>
             </div>
-            <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">{report.summary}</p>
+            <h3 className="text-base font-bold text-gray-900 leading-tight">{report.summary}</h3>
+            <p className="text-xs text-gray-500 font-medium truncate mt-1 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              {locStr(report.location)}
+            </p>
           </div>
           {report.photoUrl && (
-            <img src={report.photoUrl} alt="report" className="w-[60px] h-[60px] object-cover rounded-xl shrink-0" />
+            <div className="relative w-20 h-20 shrink-0">
+              <div className="absolute inset-0 bg-gray-900/5 rounded-2xl"></div>
+              <img src={report.photoUrl} alt="report" className="w-full h-full object-cover rounded-2xl shadow-sm border border-gray-100" />
+            </div>
           )}
         </div>
 
-        {/* Row 3: Location */}
-        <p className="text-[10px] text-gray-400 truncate">📍 {locStr(report.location)}</p>
-
-        {/* Denial explanation */}
-        {report.denialExplanation && (
-          <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            <p className="text-xs text-red-700 font-medium">Denial reason: {report.denialExplanation}</p>
-          </div>
-        )}
-
-        {/* Actions */}
-        {canApprove && !isDenying && (
-          <div className="flex gap-2 pt-1 border-t border-gray-100">
-            <button
-              onClick={handleApprove}
-              disabled={approving}
-              className="flex-1 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white text-xs font-semibold rounded-2xl py-2.5 transition-transform active:scale-95"
-            >
-              {approving ? "…" : "✅ Approve"}
-            </button>
-            <button
-              onClick={() => onDenyClick(report.id)}
-              className="flex-1 border-2 border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-2xl py-2.5 transition-transform active:scale-95"
-            >
-              ❌ Deny
-            </button>
-          </div>
-        )}
-
-        {isDenying && (
-          <DenyForm report={report} user={currentUser} onCancel={() => onDenyClick(null)} />
-        )}
-
-        {!isMyReport && (
-          <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+        {/* Action Bar */}
+        <div className="mt-2 flex items-center justify-between pt-3 border-t border-gray-100/60">
+          {!isMyReport ? (
             <button
               onClick={handleReact}
               disabled={reacted}
-              className={`flex items-center gap-1 text-xs font-semibold rounded-full px-2 py-0.5 transition-transform active:scale-125 ${
-                reacted ? "bg-blue-50 text-blue-600 cursor-default" : "bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-600"
+              className={`flex items-center gap-1.5 text-xs font-bold rounded-xl px-3 py-1.5 transition-all active:scale-95 ${
+                reacted ? "bg-civic-50 text-civic-600 border border-civic-100" : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
               }`}
             >
-              👍 {count}
+              <span className={reacted ? "animate-bounce-icon inline-block" : ""}>👍</span> 
+              {count > 0 ? count : 'React'}
             </button>
-          </div>
-        )}
+          ) : (
+             <span className="text-xs font-medium text-gray-400 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
+               👍 {count} {count === 1 ? 'reaction' : 'reactions'}
+             </span>
+          )}
 
-        {isMyReport && !canApprove && (
-          <div className="flex items-center pt-1 border-t border-gray-100">
-            <span className="text-xs text-gray-400">👍 {count} reactions</span>
-          </div>
-        )}
+          {canApprove && !isDenying && (
+            <div className="flex gap-2">
+              <button onClick={() => onDenyClick(report.id)} className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors">
+                Deny
+              </button>
+              <button onClick={handleApprove} disabled={approving} className="px-4 py-1.5 text-xs font-bold text-white bg-civic-600 hover:bg-civic-700 rounded-xl shadow-md shadow-civic-500/20 transition-all active:scale-95">
+                {approving ? "..." : "Approve Fix"}
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {isDenying && <DenyForm report={report} user={currentUser} onCancel={() => onDenyClick(null)} />}
       </div>
     </div>
   );
@@ -1034,7 +1004,6 @@ function BottomNav({ activeView, onNavigate }) {
   ];
   return (
     <div className="md:hidden flex bg-white/80 backdrop-blur-xl border-t border-gray-100 shrink-0 pb-6" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
-      <style dangerouslySetInnerHTML={{ __html: CITIZEN_KEYFRAMES }} />
       {tabs.map((tab) => {
         const isActive = activeView === tab.key;
         return (
@@ -1118,7 +1087,6 @@ export default function CitizenPage({ user }) {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 min-w-0">
-      <style dangerouslySetInnerHTML={{ __html: CITIZEN_KEYFRAMES }} />
 
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-white/80 backdrop-blur-xl border-b border-gray-100 flex items-center justify-between px-4 shrink-0">
