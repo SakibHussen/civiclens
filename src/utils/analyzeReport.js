@@ -153,7 +153,17 @@ export async function analyzeReport({ imageBase64, description, location }) {
     )?.level ?? "low";
 
     // Use Gemini's assignedDepartment, fall back to DEPT_MAP, then "electric"
-    const dept = assignedDepartment ?? DEPT_MAP[issueType] ?? "electric";
+    // Normalize the department key to handle variations like "fire department", "water authority", "public works", etc.
+    let dept = assignedDepartment?.toLowerCase() ?? "";
+    if (dept.includes("fire") || dept.includes("🚒")) {
+      dept = "fire";
+    } else if (dept.includes("water") || dept.includes("💧")) {
+      dept = "water";
+    } else if (dept.includes("electric") || dept.includes("public work") || dept.includes("⚡")) {
+      dept = "electric";
+    } else {
+      dept = DEPT_MAP[issueType] ?? "electric";
+    }
 
     const result = {
       issueType,

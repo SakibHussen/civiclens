@@ -5,6 +5,7 @@ import {
   listenToReports, addReport, reactToReport,
   approveResolution, denyResolution,
   sendNotification, listenToNotifications, markNotificationRead,
+  notifyAdminsOfNewReport,
   DEPARTMENT_CONFIG,
 } from "../firebase";
 import { analyzeReport } from "../utils/analyzeReport";
@@ -293,6 +294,9 @@ function CreateReportView({ user, location, locating, onCreated, onBack }) {
       type:       "ai_update",
       reportId:   docId,
     });
+
+    // Notify all admins about the new report
+    await notifyAdminsOfNewReport(reportId, analysis.issueType, analysis.summary, deptName, userName);
 
     setSubmittedId(reportId);
     setStep("done");
@@ -658,7 +662,7 @@ function NotificationBell({ userId, reports, currentUser }) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="relative w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+        className="relative w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm transition-colors"
       >
         <span className="text-lg">🔔</span>
         {unread > 0 && (

@@ -307,6 +307,26 @@ export async function sendNotification({ userId, reportId, type, message }) {
   });
 }
 
+// Notify all admins when a new report is submitted
+export async function notifyAdminsOfNewReport(reportId, issueType, summary, deptName, reporterName) {
+  try {
+    const adminSnap = await getDocs(query(usersCol, where("role", "==", "admin")));
+    const promises = adminSnap.docs.map((adminDoc) =>
+      addDoc(notificationsCol, {
+        userId: adminDoc.id,
+        reportId: null,
+        type: "new_report",
+        message: `📋 New report ${reportId} submitted by ${reporterName}.\nIssue: ${issueType} - ${summary}\nAssigned to: ${deptName}`,
+        read: false,
+        timestamp: serverTimestamp(),
+      })
+    );
+    await Promise.all(promises);
+  } catch (e) {
+    console.error("[notifyAdminsOfNewReport] Failed to notify admins:", e);
+  }
+}
+
 export function listenToNotifications(userId, callback) {
   const q = query(notificationsCol, where("userId", "==", userId));
   return onSnapshot(q, (snap) => {
