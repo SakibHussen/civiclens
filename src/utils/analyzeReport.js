@@ -68,12 +68,12 @@ PUBLIC WORKS: electrical_hazard, broken_streetlight, downed_power_line, pothole,
 ${description ? `Citizen description: ${description}` : "No description provided — analyze the image only."}
 ${location ? `Location: ${location}` : ""}
 
-Severity guide:
-10 = immediate danger to life (gas leak, downed power line, chemical spill)
-8-9 = critical safety hazard (biohazard, sewer overflow, structural damage)
-6-7 = significant disruption (major pothole, flooding, broken traffic light)
-4-5 = moderate issue (broken streetlight, sidewalk damage)
-1-3 = minor cosmetic issue (small pothole, minor road sign damage)
+Score across 5 dimensions (0-10):
+1. SAFETY_RISK: Immediate danger to human life
+2. SPREAD_RISK: Deterioration rate without intervention
+3. POPULATION_IMPACT: Number of people affected
+4. INFRASTRUCTURE_CRITICALITY: Importance of the affected system
+5. ENVIRONMENTAL_RISK: Contamination or environmental damage potential
 
 Respond ONLY with this JSON (no markdown, no backticks):
 {
@@ -81,10 +81,16 @@ Respond ONLY with this JSON (no markdown, no backticks):
   "assignedDepartment": "<fire | water | electric>",
   "summary": "<1 sentence, public-friendly description of what you see>",
   "caseDescription": "<2-3 sentences, technical description for city administrators>",
-  "baseSeverity": <number 1-10>,
-  "urgency": "<immediate | high | medium | low>"
-}`;
-}
+  "urgency": "<immediate | high | medium | low>",
+  "dimensions": {
+    "safety_risk": <number 0-10>,
+    "spread_risk": <number 0-10>,
+    "population_impact": <number 0-10>,
+    "infrastructure_criticality": <number 0-10>,
+    "environmental_risk": <number 0-10>
+  },
+  "reasoning": "<1-2 sentences explaining the scores>"
+}`;}
 
 export async function analyzeReport({ imageBase64, description, location }) {
   console.log("[analyzeReport] Starting — hasImage:", !!imageBase64, "| description:", description || "(none)", "| location:", location || "(none)");
@@ -122,14 +128,26 @@ export async function analyzeReport({ imageBase64, description, location }) {
     const cleaned = rawText.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
     const parsed  = JSON.parse(cleaned);
 
-    const { issueType, assignedDepartment, summary, caseDescription, baseSeverity, urgency } = parsed;
+    const { issueType, assignedDepartment, summary, caseDescription, urgency, dimensions, reasoning } = parsed;
 
-    if (!issueType || !summary || !caseDescription || baseSeverity == null) {
+    if (!issueType || !summary || !caseDescription || !dimensions) {
       throw new Error("Missing required fields in Gemini response");
     }
 
+    // Weighted score from 5 dimensions
+    const {
+      safety_risk = 0, spread_risk = 0, population_impact = 0,
+      infrastructure_criticality = 0, environmental_risk = 0,
+    } = dimensions;
+    const weightedBase = (
+      safety_risk             * 0.35 +
+      spread_risk             * 0.20 +
+      population_impact       * 0.25 +
+      infrastructure_criticality * 0.10 +
+      environmental_risk      * 0.10
+    );
     const multiplier    = SEVERITY_MULTIPLIERS[issueType] ?? 1.0;
-    const severityScore = Math.min(10, Math.round(baseSeverity * multiplier));
+    const severityScore = Math.min(10, Math.round(weightedBase * multiplier));
     const severityLevel = SEVERITY_LEVELS.find(
       (t) => severityScore >= t.min && severityScore <= t.max
     )?.level ?? "low";
@@ -144,7 +162,9 @@ export async function analyzeReport({ imageBase64, description, location }) {
       caseDescription,
       severityScore,
       severityLevel,
-      urgency: urgency ?? "medium",
+      urgency:    urgency    ?? "medium",
+      dimensions,
+      reasoning:  reasoning  ?? null,
     };
     console.log("[analyzeReport] Success:", result);
     return result;

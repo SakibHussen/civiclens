@@ -505,10 +505,10 @@ function MessageItem({ msg, currentUser, reports }) {
   if (isAI) {
     return (
       <div className="flex justify-center my-1 msg-enter">
-        <div className="w-full max-w-[calc(100%-2rem)] bg-gradient-to-r from-violet-600/15 to-indigo-600/15 border border-violet-500/20 rounded-2xl px-4 py-3">
+        <div className="w-full max-w-[calc(100%-2rem)] bg-white/40 backdrop-blur-xl border border-white/60 shadow-xl rounded-2xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
-            <span className="w-7 h-7 rounded-full bg-violet-500/20 flex items-center justify-center text-sm">🤖</span>
-            <span className="text-xs font-semibold text-violet-600">CivicLens AI</span>
+            <span className="w-7 h-7 rounded-full bg-teal-500/20 flex items-center justify-center text-sm">🤖</span>
+            <span className="text-xs font-bold text-white bg-teal-500 rounded-full px-2.5 py-0.5 tracking-wide shadow-sm shadow-teal-500/30">CivicLens AI</span>
           </div>
           <p className="text-sm text-gray-800 leading-relaxed">{msg.text}</p>
         </div>
@@ -533,19 +533,22 @@ function MessageItem({ msg, currentUser, reports }) {
     );
   }
 
+  // Premium 'Tail' Chat Bubbles
   return (
     <div className={`flex flex-col gap-0.5 msg-enter ${isMe ? "items-end" : "items-start"}`}>
       {!isMe && (
         <span className="text-xs text-gray-400 px-2">
           {msg.senderName}
-          {msg.role === "admin" && <span className="ml-1 text-indigo-600 font-semibold">Admin 🏛️</span>}
+          {msg.role === "admin" && <span className="ml-1 text-teal-600 font-semibold">Admin 🏛️</span>}
         </span>
       )}
       <div
-        className={`max-w-[78%] px-4 py-3 rounded-3xl text-sm leading-relaxed ${
+        className={`px-4 py-2.5 max-w-[85%] mb-2 ${
           isMe
-            ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-lg shadow-lg shadow-blue-500/20 ml-auto"
-            : "bg-white text-gray-800 rounded-bl-lg shadow-sm"
+            // User Messages (Right): bg-civic-600 text-white self-end rounded-2xl rounded-tr-none shadow-lg
+            ? "bg-civic-600 text-white self-end rounded-2xl rounded-tr-none shadow-lg animate-fade-up-msg"
+            // AI Messages (Left): bg-white/90 backdrop-blur-md text-gray-800 self-start rounded-2xl rounded-tl-none border border-white/50 shadow-sm
+            : "bg-white/90 backdrop-blur-md text-gray-800 self-start rounded-2xl rounded-tl-none border border-white/50 shadow-sm"
         }`}
       >
         {msg.text}
@@ -602,9 +605,12 @@ function DenyForm({ report, user, onCancel }) {
 
 // ── Notification Bell ─────────────────────────────────────────────────────────
 
-function NotificationBell({ userId }) {
+function NotificationBell({ userId, reports, currentUser }) {
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
+  const [denyingNotifId, setDenyingNotifId] = useState(null);
+  const [denyText, setDenyText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -623,6 +629,31 @@ function NotificationBell({ userId }) {
 
   const unread = notifications.filter((n) => !n.read).length;
 
+  async function handleApprove(n, report) {
+    setSubmitting(true);
+    await approveResolution(
+      report.id, report.reportId, report.issueType, report.location,
+      currentUser.displayName || currentUser.email
+    );
+    if (!n.read) await markNotificationRead(n.id);
+    setSubmitting(false);
+    setOpen(false);
+  }
+
+  async function handleDenySubmit(n, report) {
+    if (!denyText.trim()) return;
+    setSubmitting(true);
+    await denyResolution(
+      report.id, report.reportId, report.issueType,
+      denyText.trim(), currentUser.displayName || currentUser.email
+    );
+    if (!n.read) await markNotificationRead(n.id);
+    setSubmitting(false);
+    setDenyingNotifId(null);
+    setDenyText("");
+    setOpen(false);
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -637,28 +668,95 @@ function NotificationBell({ userId }) {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-12 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[60]">
+        <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[60]">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
             <span className="font-semibold text-gray-800 text-sm">Notifications</span>
             {unread > 0 && <span className="text-xs text-blue-600 font-medium">{unread} unread</span>}
           </div>
-          <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+          <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
             {notifications.length === 0 ? (
               <p className="py-8 text-center text-gray-400 text-sm">No notifications yet</p>
             ) : (
-              notifications.slice(0, 15).map((n) => (
-                <button
-                  key={n.id}
-                  onClick={async () => { if (!n.read) await markNotificationRead(n.id); setOpen(false); }}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex flex-col gap-1 ${!n.read ? "bg-blue-50/60" : ""}`}
-                >
-                  <p className="text-xs text-gray-800 leading-snug">{n.message}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-400">{timeAgo(n.timestamp)}</span>
-                    {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
+              notifications.slice(0, 20).map((n) => {
+                const isApprovalRequest = n.type === "approval_request";
+                const report = isApprovalRequest ? reports.find((r) => r.id === n.reportId) : null;
+                const canAction = report && report.status === "pending_to_resolve";
+                const isDenying = denyingNotifId === n.id;
+                const icon = n.type === "approval_request" ? "✅" : n.type === "status_update" ? "🔄" : "🔔";
+
+                return (
+                  <div
+                    key={n.id}
+                    className={`flex gap-3 px-4 py-3 transition-colors ${!n.read ? "bg-blue-50" : "bg-white"}`}
+                  >
+                    {/* Icon column */}
+                    <div className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-base mt-0.5 ${!n.read ? "bg-blue-100" : "bg-gray-100"}`}>
+                      {icon}
+                    </div>
+
+                    {/* Content column */}
+                    <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                      <p
+                        className={`text-xs leading-snug ${!n.read ? "text-gray-900 font-medium" : "text-gray-600"}`}
+                        onClick={async () => { if (!canAction && !n.read) await markNotificationRead(n.id); }}
+                      >
+                        {n.message}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-400">{timeAgo(n.timestamp)}</span>
+                        {!n.read && <span className="text-[10px] font-semibold text-blue-500">New</span>}
+                      </div>
+
+                      {/* Approve / Deny buttons */}
+                      {canAction && !isDenying && (
+                        <div className="flex gap-2 mt-1">
+                          <button
+                            onClick={() => handleApprove(n, report)}
+                            disabled={submitting}
+                            className="flex-1 bg-civic-600 hover:bg-civic-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl py-1.5 transition-all active:scale-95"
+                          >
+                            {submitting ? "…" : "Approve Fix"}
+                          </button>
+                          <button
+                            onClick={() => { setDenyingNotifId(n.id); setDenyText(""); }}
+                            className="px-3 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl py-1.5 transition-colors"
+                          >
+                            Deny
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Inline deny form */}
+                      {isDenying && (
+                        <div className="flex flex-col gap-2 mt-1">
+                          <textarea
+                            value={denyText}
+                            onChange={(e) => setDenyText(e.target.value)}
+                            rows={2}
+                            placeholder="Why is this not resolved? (required)"
+                            className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleDenySubmit(n, report)}
+                              disabled={!denyText.trim() || submitting}
+                              className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl py-1.5 transition-all active:scale-95"
+                            >
+                              {submitting ? "Submitting…" : "Submit Denial"}
+                            </button>
+                            <button
+                              onClick={() => { setDenyingNotifId(null); setDenyText(""); }}
+                              className="px-3 text-xs text-gray-500 hover:text-gray-700"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </button>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -700,7 +798,7 @@ function ReportCard({ report, currentUser, denyingId, onDenyClick }) {
   const dotCls = status.dotCls ?? "bg-gray-500";
 
   return (
-    <div className="relative group overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-1">
+    <div className="relative group overflow-hidden rounded-3xl bg-white/60 backdrop-blur-md border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-civic-400">
       {/* Subtle background gradient matching the department */}
       <div className={`absolute top-0 left-0 w-1.5 h-full ${deptBorderCls(report.issueType).replace('border-l-', 'bg-')}`} />
       
@@ -837,22 +935,22 @@ function ReportsPanel({ reports, currentUser, myOnly, title, onCreateReport }) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar */}
-      <div className="px-4 py-3 border-b border-gray-100 bg-white shrink-0 flex flex-col gap-2">
+      {/* Toolbar - Colorful gradient */}
+      <div className="px-4 py-3 border-b border-white/10 bg-white/5 shrink-0 flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="font-bold text-gray-900 text-sm">{title}</h2>
-          <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">
+          <h2 className="font-bold text-white text-sm">{title}</h2>
+          <span className="text-[10px] font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full px-2 py-0.5">
             {filtered.length}
           </span>
         </div>
 
         <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-sm">🔍</span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by ID, type, summary…"
-            className="w-full bg-gray-100 rounded-2xl pl-10 pr-4 py-3 text-sm focus:bg-white focus:border focus:border-blue-200 focus:outline-none transition-all duration-200"
+            className="w-full bg-white/10 border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/40 focus:bg-white/15 focus:border focus:border-blue-400 focus:outline-none transition-all duration-200"
           />
         </div>
 
@@ -860,11 +958,11 @@ function ReportsPanel({ reports, currentUser, myOnly, title, onCreateReport }) {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-gray-100 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 border-0"
+            className="bg-white/10 border border-white/10 rounded-2xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
-            <option value="priority">↑ Priority</option>
-            <option value="date-newest">🕐 Newest</option>
-            <option value="date-oldest">🕐 Oldest</option>
+            <option value="priority" className="text-black">↑ Priority</option>
+            <option value="date-newest" className="text-black">🕐 Newest</option>
+            <option value="date-oldest" className="text-black">🕐 Oldest</option>
           </select>
         </div>
 
@@ -879,8 +977,8 @@ function ReportsPanel({ reports, currentUser, myOnly, title, onCreateReport }) {
                   onClick={() => setStatusFilter(f.key)}
                   className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? "bg-blue-600 text-white scale-105 shadow-lg shadow-blue-500/30"
-                      : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 active:scale-95"
+                      ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 shadow-lg shadow-blue-500/30"
+                      : "bg-white/10 border border-white/20 text-white/60 hover:bg-white/20 hover:text-white"
                   }`}
                 >
                   {f.label}
@@ -892,30 +990,30 @@ function ReportsPanel({ reports, currentUser, myOnly, title, onCreateReport }) {
       </div>
 
       {/* Report list */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center py-20 text-center gap-2">
             <span className="text-3xl animate-float">📋</span>
-            <p className="text-gray-500 text-sm">No reports found</p>
+            <p className="text-white/50 text-sm">No reports found</p>
             {myOnly && baseCount === 0 ? (
               <>
-                <p className="text-gray-400 text-sm">You haven&apos;t submitted any reports yet</p>
+                <p className="text-white/40 text-sm">You haven&apos;t submitted any reports yet</p>
                 <button
                   onClick={onCreateReport}
-                  className="mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-2xl px-5 py-2.5 transition-colors active:scale-95"
+                  className="mt-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-sm font-semibold rounded-2xl px-5 py-2.5 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
                 >
                   Create your first report
                 </button>
               </>
             ) : (
               <>
-                <p className="text-gray-400 text-sm">
+                <p className="text-white/40 text-sm">
                   {myOnly ? "No reports match your search." : `No ${statusFilter !== "all" ? STATUS_FILTERS.find((f) => f.key === statusFilter)?.label : ""} reports.`}
                 </p>
                 {hasFilters && (
                   <button
                     onClick={() => { setSearch(""); setStatusFilter("all"); setSortBy("priority"); }}
-                    className="text-sm text-blue-500 hover:text-blue-700 font-medium mt-1"
+                    className="text-sm text-cyan-400 hover:text-cyan-300 font-medium mt-1"
                   >
                     Clear filters
                   </button>
@@ -958,7 +1056,7 @@ function Sidebar({ activeView, onNavigate, userName, onLogout }) {
   ];
 
   return (
-    <div className="hidden md:flex flex-col w-[220px] border-r border-gray-800 bg-gray-900 shrink-0">
+    <div className="hidden md:flex flex-col w-[220px] border-r border-white/10 bg-gradient-to-b from-blue-900/50 to-purple-900/50 shrink-0">
       <nav className="flex-1 p-2 pt-3 flex flex-col gap-0.5">
         {navItems.map((item) => {
           const isActive = activeView === item.key;
@@ -968,11 +1066,11 @@ function Sidebar({ activeView, onNavigate, userName, onLogout }) {
               onClick={() => onNavigate(item.key)}
               className={`w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative ${
                 isActive
-                  ? "bg-gray-800 text-white"
-                  : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
+                  ? "bg-gradient-to-r from-blue-600/50 to-cyan-600/50 text-white"
+                  : "text-white/60 hover:bg-white/5 hover:text-white"
               }`}
             >
-              {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r" />}
+              {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-r" />}
               <span>{item.icon}</span>
               <span>{item.label}</span>
             </button>
@@ -980,11 +1078,11 @@ function Sidebar({ activeView, onNavigate, userName, onLogout }) {
         })}
       </nav>
 
-      <div className="p-3 border-t border-gray-800">
-        <p className="text-xs text-gray-400 font-medium truncate px-1 mb-1">👤 {userName}</p>
+      <div className="p-3 border-t border-white/10">
+        <p className="text-xs text-white/60 font-medium truncate px-1 mb-1">👤 {userName}</p>
         <button
           onClick={onLogout}
-          className="w-full text-xs text-gray-500 hover:text-red-400 text-left px-1 py-1 transition-colors"
+          className="w-full text-xs text-white/40 hover:text-red-400 text-left px-1 py-1 transition-colors"
         >
           Logout
         </button>
@@ -1003,7 +1101,7 @@ function BottomNav({ activeView, onNavigate }) {
     { key: "all-reports", icon: "🌐", label: "All" },
   ];
   return (
-    <div className="md:hidden flex bg-white/80 backdrop-blur-xl border-t border-gray-100 shrink-0 pb-6" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+    <div className="md:hidden flex bg-gradient-to-t from-blue-900/90 via-purple-900/80 to-cyan-900/90 backdrop-blur-xl border-t border-white/10 shrink-0 pb-6" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
       {tabs.map((tab) => {
         const isActive = activeView === tab.key;
         return (
@@ -1011,12 +1109,12 @@ function BottomNav({ activeView, onNavigate }) {
             key={tab.key}
             onClick={() => onNavigate(tab.key)}
             className={`flex-1 flex flex-col items-center py-2 px-4 gap-0.5 text-xs font-medium transition-all duration-300 ${
-              isActive ? "text-blue-600" : "text-gray-400"
+              isActive ? "text-white" : "text-white/50"
             }`}
           >
             <span className={`text-xl transition-transform duration-300 ${isActive ? "animate-bounce-icon" : ""}`}>{tab.icon}</span>
             <span>{tab.label}</span>
-            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-0.5" />}
+            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 mt-0.5" />}
           </button>
         );
       })}
@@ -1036,8 +1134,11 @@ export default function CitizenPage({ user }) {
   const [location,   setLocation]   = useState(null);
   const [locating,   setLocating]   = useState(false);
   const [activeView, setActiveView] = useState("chat"); // "chat" | "create-report" | "my-reports" | "all-reports"
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
 
   const bottomRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
     const unsub1 = listenToMessages(setMessages);
@@ -1048,8 +1149,33 @@ export default function CitizenPage({ user }) {
   useEffect(() => {
     if (activeView === "chat") {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      setShowScrollButton(false);
     }
   }, [messages, activeView]);
+
+  // Scroll handler for scroll-to-bottom button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!chatContainerRef.current) return;
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 300;
+      setShowScrollButton(!isNearBottom);
+    };
+
+    const container = chatContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [activeView]);
+
+  // Simulate typing indicator when AI responds
+  useEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg && lastMsg.role === 'ai') {
+      setIsTyping(false);
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -1074,6 +1200,10 @@ export default function CitizenPage({ user }) {
     if (!text.trim()) return;
     const t = text.trim();
     setText("");
+    
+    // Show typing indicator
+    setIsTyping(true);
+    
     await sendMessage({
       senderId:   user.uid,
       senderName: userName,
@@ -1083,25 +1213,64 @@ export default function CitizenPage({ user }) {
     });
   }
 
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShowScrollButton(false);
+  };
+
   const initials = (userName || "C").split(" ").map((s) => s[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 min-w-0">
+    <div className="h-screen flex flex-col min-w-0 relative">
 
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-white/80 backdrop-blur-xl border-b border-gray-100 flex items-center justify-between px-4 shrink-0">
-        <h1 className="text-lg font-bold text-gray-900">CivicLens</h1>
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* 1. COLORFUL ANIMATED BACKGROUND - Like Login Page */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      
+      {/* Base gradient */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" />
+      
+      {/* Animated Blobs */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        {/* Blue Blob */}
+        <div 
+          className="absolute w-[500px] h-[500px] rounded-full bg-blue-500/30 blur-[100px] -top-40 -left-40 animate-blob-blue"
+        />
+        {/* Purple Blob */}
+        <div 
+          className="absolute w-[500px] h-[500px] rounded-full bg-purple-500/30 blur-[100px] top-1/2 -right-40 animate-blob-purple"
+        />
+        {/* Cyan Blob */}
+        <div 
+          className="absolute w-[500px] h-[500px] rounded-full bg-cyan-400/30 blur-[100px] -bottom-40 left-1/4 animate-blob-cyan"
+        />
+        {/* Teal Blob */}
+        <div 
+          className="absolute w-[400px] h-[400px] rounded-full bg-teal-500/20 blur-[80px] top-1/3 left-1/2 animate-blob-blue"
+          style={{ animationDelay: '2s' }}
+        />
+      </div>
+      
+      {/* Pattern Layer */}
+      <div 
+        className="fixed inset-0 -z-10 opacity-[0.03] pointer-events-none"
+        style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')" }}
+      />
+
+      {/* Fixed Header - Colorful gradient */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-gradient-to-r from-blue-900/90 via-purple-900/80 to-cyan-900/90 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-4 shrink-0">
+        <h1 className="text-lg font-bold text-white">CivicLens</h1>
         <div className="flex items-center gap-3">
-          <NotificationBell userId={user.uid} />
+          <NotificationBell userId={user.uid} reports={reports} currentUser={user} />
           <div
-            className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-lg"
             aria-hidden
           >
             {initials}
           </div>
           <button
             onClick={handleLogout}
-            className="hidden md:block text-xs text-gray-500 hover:text-gray-700"
+            className="hidden md:block text-xs text-white/70 hover:text-white"
           >
             Logout
           </button>
@@ -1122,34 +1291,65 @@ export default function CitizenPage({ user }) {
           {/* Chat view */}
           {activeView === "chat" && (
             <>
-              <div className="px-4 py-3 bg-white/80 backdrop-blur-sm border-b border-gray-100 shrink-0 md:border-none md:bg-transparent">
-                <h2 className="font-bold text-gray-900 text-sm">Community Chat 🏙️</h2>
-                <p className="text-xs text-gray-400">{reports.length} reports in the community</p>
+              <div className="px-4 py-3 bg-white/5 border-b border-white/10 shrink-0">
+                <h2 className="font-bold text-white text-sm">Community Chat 🏙️</h2>
+                <p className="text-xs text-white/50">{reports.length} reports in the community</p>
               </div>
+              
+              {/* Chat Container */}
               <div
-                className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 overscroll-contain"
+                ref={chatContainerRef}
+                className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain relative"
                 style={{ WebkitOverflowScrolling: "touch" }}
               >
                 {messages.length === 0 && (
                   <div className="py-20 text-center">
                     <span className="text-3xl block mb-3 animate-float">👋</span>
-                    <p className="text-gray-500 text-sm">No messages yet. Start the conversation!</p>
+                    <p className="text-white/50 text-sm">No messages yet. Start the conversation!</p>
                   </div>
                 )}
                 {messages.map((msg) => (
                   <MessageItem key={msg.id} msg={msg} currentUser={user} reports={reports} />
                 ))}
+                
+                {/* Typing Indicator */}
+                {isTyping && (
+                  <div className="flex justify-start msg-enter">
+                    <div className="bg-white/90 backdrop-blur-md border border-white/50 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm flex items-center gap-1">
+                      <span className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                )}
+                
                 <div ref={bottomRef} />
+                
+                {/* Scroll to Bottom Button */}
+                {showScrollButton && (
+                  <button
+                    onClick={scrollToBottom}
+                    className="fixed bottom-24 right-8 md:right-12 z-50 w-12 h-12 bg-civic-600 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform animate-bounce-in"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </button>
+                )}
               </div>
+              
+              {/* ══════════════════════════════════════════════════════════════ */}
+              {/* 3. THE 'iOS-STYLE' FLOATING INPUT DOCK */}
+              {/* ══════════════════════════════════════════════════════════════ */}
               <form
                 onSubmit={handleSend}
-                className="border-t border-gray-100 bg-white/90 backdrop-blur-xl px-4 py-3 flex items-center gap-2 shrink-0"
+                className="sticky bottom-6 mx-auto w-[90%] max-w-2xl z-50"
               >
-                <div className="flex-1 bg-gray-100 rounded-full flex items-center px-4 py-2 min-h-10">
+                <div className="bg-white/80 backdrop-blur-2xl border border-white/50 rounded-full py-2 px-4 shadow-[0_20px_50px_rgba(0,0,0,0.1)] flex items-center gap-3 transition-all focus-within:border-civic-400 focus-within:shadow-[0_20px_50px_rgba(20,184,166,0.15)]">
                   <button
                     type="button"
                     onClick={() => setActiveView("create-report")}
-                    className="shrink-0 text-blue-500 text-sm font-medium mr-2"
+                    className="shrink-0 text-civic-600 text-sm font-medium px-2 hover:bg-civic-50 rounded-full transition-colors"
                   >
                     📎 Report
                   </button>
@@ -1157,16 +1357,16 @@ export default function CitizenPage({ user }) {
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     placeholder="Type a message…"
-                    className="flex-1 bg-transparent border-0 focus:outline-none focus:ring-0 text-sm min-w-0"
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-sm min-w-0 text-gray-800 placeholder-gray-400"
                   />
+                  <button
+                    type="submit"
+                    disabled={!text.trim()}
+                    className="shrink-0 w-10 h-10 rounded-full bg-civic-500 shadow-[0_0_15px_rgba(20,184,166,0.3)] hover:scale-110 hover:bg-civic-600 disabled:opacity-40 disabled:scale-100 text-white flex items-center justify-center text-lg transition-all duration-200"
+                  >
+                    ➤
+                  </button>
                 </div>
-                <button
-                  type="submit"
-                  disabled={!text.trim()}
-                  className="shrink-0 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white flex items-center justify-center text-lg transition-transform active:scale-90"
-                >
-                  ➤
-                </button>
               </form>
             </>
           )}

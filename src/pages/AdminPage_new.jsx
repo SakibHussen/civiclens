@@ -173,11 +173,11 @@ function MessageItem({ msg, currentUser, reports }) {
 
   if (isAI) {
     return (
-      <div className="flex justify-center my-2">
-        <div className="max-w-sm w-full bg-gradient-to-r from-violet-900/50 to-indigo-900/50 border border-violet-500/20 rounded-2xl px-4 py-3">
+      <div className="flex justify-center my-2 msg-enter">
+        <div className="w-full max-w-[calc(100%-2rem)] bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-base">🤖</span>
-            <span className="text-xs font-semibold text-violet-300">CivicLens AI</span>
+            <span className="w-7 h-7 rounded-full bg-teal-500/30 flex items-center justify-center text-sm">🤖</span>
+            <span className="text-xs font-semibold text-teal-300">CivicLens AI</span>
           </div>
           <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-line">{msg.text}</p>
         </div>
@@ -188,12 +188,12 @@ function MessageItem({ msg, currentUser, reports }) {
   if (isReport) {
     const report = reports.find((r) => r.id === msg.reportId);
     return (
-      <div className={`flex flex-col gap-1 ${isMe ? "items-end" : "items-start"}`}>
+      <div className={`flex flex-col gap-1 msg-enter ${isMe ? "items-end" : "items-start"}`}>
         <span className="text-xs text-gray-500 px-1">{msg.senderName}</span>
         {report ? (
           <ChatReportCard report={report} />
         ) : (
-          <div className="border-l-4 border-indigo-500 bg-gray-800 rounded-2xl px-4 py-3 text-sm text-gray-400">
+          <div className="border-l-4 border-indigo-500 bg-gray-800/50 backdrop-blur-sm rounded-2xl px-4 py-3 text-sm text-gray-400">
             Loading report…
           </div>
         )}
@@ -202,11 +202,12 @@ function MessageItem({ msg, currentUser, reports }) {
     );
   }
 
+  // Premium 'Tail' Chat Bubbles - Dark Mode
   return (
-    <div className={`flex flex-col gap-0.5 ${isMe ? "items-end" : "items-start"}`}>
+    <div className={`flex flex-col gap-0.5 msg-enter ${isMe ? "items-end" : "items-start"}`}>
       <span className="text-xs text-gray-500 px-2">
         {isMe ? (
-          <span className="text-blue-400 font-semibold text-[10px]">{msg.senderName}</span>
+          <span className="text-teal-400 font-semibold text-[10px]">{msg.senderName}</span>
         ) : (
           <>
             {msg.senderName}
@@ -216,10 +217,12 @@ function MessageItem({ msg, currentUser, reports }) {
           </>
         )}
       </span>
-      <div className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-3xl text-sm leading-relaxed ${
+      <div className={`px-4 py-2.5 max-w-[85%] mb-2 ${
         isMe
-          ? "bg-gradient-to-br from-slate-600 to-slate-700 text-white rounded-br-lg shadow-lg"
-          : "bg-gray-800 text-gray-100 rounded-bl-lg"
+          // Admin/User Messages (Right): bg-civic-600 text-white rounded-2xl rounded-tr-none
+          ? "bg-civic-600 text-white self-end rounded-2xl rounded-tr-none shadow-lg animate-fade-up-msg"
+          // Other Messages (Left): bg-white/10 backdrop-blur-md text-gray-100 rounded-2xl rounded-tl-none
+          : "bg-white/10 backdrop-blur-md text-gray-100 self-start rounded-2xl rounded-tl-none border border-white/20"
       }`}>
         {msg.text}
       </div>
@@ -279,7 +282,7 @@ function AdminReportCard({ report, deptName, index }) {
 
   return (
     <div 
-      className="bg-gray-900 rounded-2xl border border-white/5 border-l-4 p-4 flex flex-col gap-2 hover:-translate-y-0.5 hover:brightness-105 transition-all duration-200"
+      className="bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 border-l-4 p-4 flex flex-col gap-2 hover:-translate-y-0.5 hover:bg-white/10 hover:border-white/20 transition-all duration-200 shadow-lg"
       style={{ 
         borderLeftColor: deptColor.accent.replace('border-', ''),
         animation: `slide-in-right 0.4s ease-out ${index * 0.05}s both`
@@ -288,7 +291,7 @@ function AdminReportCard({ report, deptName, index }) {
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-bold bg-gray-800 text-gray-300 rounded px-1.5 py-0.5 tracking-wide font-mono">
+            <span className="text-[10px] font-bold bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded px-1.5 py-0.5 tracking-wide font-mono">
               {report.reportId || "RPT"}
             </span>
             <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${status.cls}`}>
@@ -309,14 +312,14 @@ function AdminReportCard({ report, deptName, index }) {
           <p className="text-xs text-gray-400 line-clamp-2">
             {report.caseDescription || report.summary}
           </p>
-          <p className="text-[10px] text-gray-600 truncate">📍 {locStr(report.location)}</p>
-          <p className="text-[10px] text-gray-600">
+          <p className="text-[10px] text-gray-500 truncate">📍 {locStr(report.location)}</p>
+          <p className="text-[10px] text-gray-500">
             👤 {report.createdByName || "Unknown"} · 👍 {report.reactionCount ?? 0} · {timeAgo(report.timestamp)}
           </p>
         </div>
         {report.photoUrl && (
           <img src={report.photoUrl} alt="report"
-            className="w-16 h-16 object-cover rounded-xl shrink-0" />
+            className="w-16 h-16 object-cover rounded-xl shrink-0 border border-white/20" />
         )}
       </div>
 
@@ -328,13 +331,13 @@ function AdminReportCard({ report, deptName, index }) {
         </div>
       )}
 
-      {/* Status action buttons */}
-      <div className="flex gap-2 pt-1 border-t border-white/5 flex-wrap">
+      {/* Status action buttons - colorful */}
+      <div className="flex gap-2 pt-1 border-t border-white/10 flex-wrap">
         {isPending && (
           <button 
             onClick={handleStartWorking} 
             disabled={updating}
-            className="flex-1 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-60 text-black text-xs font-semibold rounded-xl px-4 py-2 transition-all active:scale-95"
+            className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:opacity-60 text-black text-xs font-semibold rounded-xl px-4 py-2 transition-all active:scale-95 shadow-lg shadow-yellow-500/20"
           >
             {updating ? <span className="inline-block w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin mr-1"></span> : "▶ Start Working"}
           </button>
@@ -343,7 +346,7 @@ function AdminReportCard({ report, deptName, index }) {
           <button 
             onClick={handleRequestResolution} 
             disabled={updating}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-semibold rounded-xl px-4 py-2 transition-all active:scale-95"
+            className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:opacity-60 text-white text-xs font-semibold rounded-xl px-4 py-2 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
           >
             {updating ? <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1"></span> : "✔ Request Resolution"}
           </button>
@@ -381,14 +384,15 @@ function AdminReportsPanel({ reports, department }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 pt-4 pb-2 shrink-0">
+      {/* Colorful gradient header */}
+      <div className="px-4 pt-4 pb-2 shrink-0 bg-gradient-to-r from-blue-900/40 via-purple-900/30 to-cyan-900/40 border-b border-white/5">
         <h2 className="font-bold text-white text-xl">Report Queue</h2>
         <p className="text-xs text-gray-400 mb-3">
           {deptReports.length} report{deptReports.length !== 1 ? "s" : ""}
           {department ? " assigned to your department" : " across all departments"}
         </p>
         
-        {/* Filter pills horizontal scroll */}
+        {/* Filter pills horizontal scroll - colorful */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {FILTER_TABS.map((f) => (
             <button 
@@ -396,8 +400,8 @@ function AdminReportsPanel({ reports, department }) {
               onClick={() => setFilter(f.key)}
               className={`text-xs px-3 py-1.5 rounded-full font-medium whitespace-nowrap transition-all ${
                 filter === f.key
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-800/50 text-gray-400 border border-gray-700 hover:bg-gray-700"
+                  ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/30"
+                  : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 hover:border-white/20"
               }`}
             >
               {f.label}
@@ -406,7 +410,8 @@ function AdminReportsPanel({ reports, department }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gray-950">
+      {/* Colorful gradient background for report list */}
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#164e63]">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-gray-500 text-center gap-2">
             <span className="text-4xl">📭</span>
@@ -433,8 +438,11 @@ function AdminPage({ user, department }) {
   const [reports,   setReports]   = useState([]);
   const [text,      setText]      = useState("");
   const [mobileTab, setMobileTab] = useState("chat");
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
 
   const bottomRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
     const unsub1 = listenToMessages(setMessages);
@@ -444,6 +452,30 @@ function AdminPage({ user, department }) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShowScrollButton(false);
+  }, [messages]);
+
+  // Scroll handler for scroll-to-bottom button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!chatContainerRef.current) return;
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 300;
+      setShowScrollButton(!isNearBottom);
+    };
+
+    const container = chatContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [mobileTab]);
+
+  useEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg && lastMsg.role === 'ai') {
+      setIsTyping(false);
+    }
   }, [messages]);
 
   async function handleLogout() {
@@ -456,6 +488,7 @@ function AdminPage({ user, department }) {
     if (!text.trim()) return;
     const t = text.trim();
     setText("");
+    setIsTyping(true);
     await sendMessage({
       senderId:   user.uid,
       senderName: deptName,
@@ -464,6 +497,11 @@ function AdminPage({ user, department }) {
       type:       "chat",
     });
   }
+
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShowScrollButton(false);
+  };
 
   // Department badge color
   const deptColors = {
@@ -474,10 +512,21 @@ function AdminPage({ user, department }) {
   const deptColor = deptColors[department] ?? { bg: "bg-slate-500/20", text: "text-slate-300", border: "border-slate-500/30" };
 
   return (
-    <div className="h-screen flex flex-col bg-[#030712]">
+    <div className="h-screen flex flex-col min-w-0 relative">
 
-      {/* Header - fixed top */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-xl h-14 px-4 flex items-center justify-between shrink-0 border-b border-white/5">
+      {/* DARK WALLPAPER BACKGROUND */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800" />
+      <div 
+        className="fixed inset-0 -z-10 opacity-[0.03] pointer-events-none"
+        style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')" }}
+      />
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* Header - fixed top - colorful gradient */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-900/90 via-purple-900/80 to-cyan-900/90 backdrop-blur-xl h-14 px-4 flex items-center justify-between shrink-0 border-b border-white/10">
         <div className="flex items-center gap-3">
           <span className={`text-xs font-semibold rounded-full px-2.5 py-1 ${deptColor.bg} ${deptColor.text} border ${deptColor.border}`}>
             {deptName}
@@ -496,7 +545,7 @@ function AdminPage({ user, department }) {
           {/* Logout button */}
           <button 
             onClick={handleLogout}
-            className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+            className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -508,30 +557,29 @@ function AdminPage({ user, department }) {
       {/* Spacer for fixed header */}
       <div className="h-14 shrink-0"></div>
 
-      {/* Mobile tab switcher - bottom tab bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-xl border-t border-white/5 h-16 flex items-end pb-2 px-4">
+      {/* Mobile tab switcher - bottom tab bar - colorful */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-blue-900/90 via-purple-900/80 to-cyan-900/90 backdrop-blur-xl border-t border-white/10 h-16 flex items-end pb-2 px-4">
         {/* Indicator bar */}
         <div 
-          className="absolute h-0.5 bg-blue-500 rounded-full transition-all duration-300 ease-out"
+          className="absolute h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full transition-all duration-300 ease-out shadow-lg shadow-cyan-400/50"
           style={{
             width: 'calc(50% - 1rem)',
             top: '0',
             left: mobileTab === 'chat' ? '0.5rem' : 'calc(50% + 0.5rem)',
-            transform: mobileTab === 'chat' ? 'translateX(0)' : 'translateX(0)',
           }}
         ></div>
         
         {[
           ["chat", "💬 Chat"], 
-          ["reports", "📋map(([key, label]) => Reports"]
-        ]. (
+          ["reports", "📋 Reports"]
+        ].map(([key, label]) => (
           <button 
             key={key} 
             onClick={() => setMobileTab(key)}
             className={`flex-1 py-2 text-sm font-semibold transition-colors relative z-10 ${
               mobileTab === key
                 ? "text-white"
-                : "text-gray-500"
+                : "text-white/50"
             }`}
           >
             {label}
@@ -546,43 +594,70 @@ function AdminPage({ user, department }) {
         <div className={`flex flex-col w-full md:w-[55%] border-r border-white/5 ${
           mobileTab !== "chat" ? "hidden md:flex" : "flex"
         }`}>
-          <div className="px-4 py-3 bg-gray-900/50 border-b border-white/5 shrink-0">
+          <div className="px-4 py-3 bg-white/5 border-b border-white/5 shrink-0">
             <h2 className="font-bold text-white text-sm">CivicLens Community Chat 🏙️</h2>
             <p className="text-xs text-gray-500">All citizens and departments · Signed in as {deptName}</p>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-950">
+          {/* Chat Container */}
+          <div 
+            ref={chatContainerRef}
+            className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain relative"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             {messages.length === 0 && (
               <div className="text-center text-gray-500 text-sm py-10">No messages yet.</div>
             )}
             {messages.map((msg) => (
               <MessageItem key={msg.id} msg={msg} currentUser={user} reports={reports} />
             ))}
+            
+            {/* Typing Indicator */}
+            {isTyping && (
+              <div className="flex justify-start msg-enter">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-1">
+                  <span className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
+            
             <div ref={bottomRef} />
+            
+            {/* Scroll to Bottom Button */}
+            {showScrollButton && (
+              <button
+                onClick={scrollToBottom}
+                className="fixed bottom-24 right-8 md:right-12 z-50 w-12 h-12 bg-civic-600 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform animate-bounce-in"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </button>
+            )}
           </div>
 
-          {/* Input bar */}
+          {/* iOS-STYLE FLOATING INPUT DOCK */}
           <form 
             onSubmit={handleSend} 
-            className="bg-gray-900 border-t border-white/5 px-4 py-3 flex gap-2 shrink-0"
+            className="sticky bottom-6 mx-auto w-[90%] max-w-2xl z-50 mb-4"
           >
-            <div className="flex-1 bg-gray-800 rounded-full flex items-center px-4">
+            <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full py-2 px-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-3 transition-all focus-within:border-civic-400 focus-within:shadow-[0_20px_50px_rgba(20,184,166,0.15)]">
               <input 
                 value={text} 
                 onChange={(e) => setText(e.target.value)}
                 placeholder={`Message as ${deptName}…`}
-                className="flex-1 bg-transparent text-white placeholder-gray-500 py-2 text-sm focus:outline-none"
+                className="flex-1 bg-transparent border-none focus:ring-0 text-sm min-w-0 text-white placeholder-gray-500"
               />
+              <button 
+                type="submit" 
+                disabled={!text.trim()}
+                className="shrink-0 w-10 h-10 rounded-full bg-civic-500 shadow-[0_0_15px_rgba(20,184,166,0.3)] hover:scale-110 hover:bg-civic-600 disabled:opacity-40 disabled:scale-100 text-white flex items-center justify-center text-lg transition-all duration-200"
+              >
+                ➤
+              </button>
             </div>
-            <button 
-              type="submit" 
-              disabled={!text.trim()}
-              className="shrink-0 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-semibold rounded-full w-10 h-10 flex items-center justify-center transition-all active:scale-95"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
           </form>
         </div>
 

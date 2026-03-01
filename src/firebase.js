@@ -307,17 +307,18 @@ export async function sendNotification({ userId, reportId, type, message }) {
   });
 }
 
-// NOTE: Requires Firestore composite index on (userId ASC, timestamp DESC).
-// Click the link in the browser console if you get an index error.
 export function listenToNotifications(userId, callback) {
-  const q = query(
-    notificationsCol,
-    where("userId", "==", userId),
-    orderBy("timestamp", "desc")
-  );
-  return onSnapshot(q, (snap) =>
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-  );
+  const q = query(notificationsCol, where("userId", "==", userId));
+  return onSnapshot(q, (snap) => {
+    const sorted = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const ta = a.timestamp?.toMillis?.() ?? 0;
+        const tb = b.timestamp?.toMillis?.() ?? 0;
+        return tb - ta;
+      });
+    callback(sorted);
+  });
 }
 
 export async function markNotificationRead(notifId) {

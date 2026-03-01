@@ -226,7 +226,7 @@ export default function LoginPage() {
 
           {/* Form title */}
           <h2 className="text-xl font-bold text-white mb-6">
-            {role === "citizen" ? "Welcome back 👋" : "Admin Access 🔒"}
+            {role === "admin" ? "Admin Access 🔒" : view === "signin" ? "Welcome back 👋" : "Create Account"}
           </h2>
 
           {error && (
