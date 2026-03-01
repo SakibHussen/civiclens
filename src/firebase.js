@@ -203,7 +203,23 @@ export function listenToMessages(callback) {
 // ── Reports ───────────────────────────────────────────────────────────────────
 
 export async function addReport(reportData) {
-  const reportId = "RPT-" + Date.now();
+  const dept = reportData.assignedDepartment;
+  const deptPrefix = dept === "fire" ? "F" : dept === "water" ? "W" : dept === "electric" ? "E" : "R";
+  
+  // Get count of reports for this department to generate sequential ID
+  let count = 1;
+  try {
+    const q = query(reportsCol, where("assignedDepartment", "==", dept), orderBy("timestamp", "desc"));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      count = snap.size + 1;
+    }
+  } catch (e) {
+    // If query fails, use timestamp as fallback
+    count = Math.floor(Date.now() / 1000) % 1000;
+  }
+  
+  const reportId = `${deptPrefix}-${count}`;
   const ref = await addDoc(reportsCol, {
     ...reportData,
     reportId,

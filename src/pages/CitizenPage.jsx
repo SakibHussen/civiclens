@@ -280,10 +280,9 @@ function CreateReportView({ user, location, locating, onCreated, onBack }) {
     const analysis = await analyzeReport({ imageBase64: photoBase64, description, location: locationCtx });
 
     const storedLocation = {
-      ...(location ?? {}),
-      address: location?.address
-        ? homeLabel ? `${location.address} · ${homeLabel}` : location.address
-        : homeLabel ?? "Location unavailable",
+      lat: location?.lat,
+      lng: location?.lng,
+      address: location?.address || "Location unavailable",
     };
 
     setStep("submitting");
