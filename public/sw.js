@@ -1,4 +1,4 @@
-const CACHE = "civiclens-v1";
+const CACHE = "civiclens-v2";
 const ASSETS = ["/", "/index.html"];
 
 self.addEventListener("install", (e) =>
