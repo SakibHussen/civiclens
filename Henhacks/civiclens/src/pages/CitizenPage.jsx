@@ -93,14 +93,136 @@ function locStr(loc) {
   return loc.address || `${loc.lat?.toFixed(4)}, ${loc.lng?.toFixed(4)}`;
 }
 
+// ── Camera Modal ──────────────────────────────────────────────────────────────
+
+function CameraModal({ onCapture, onClose }) {
+  const videoRef  = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const [ready,       setReady]       = useState(false);
+  const [error,       setError]       = useState("");
+  const [facingMode,  setFacingMode]  = useState("environment");
+
+  useEffect(() => {
+    let active = true;
+
+    async function start() {
+      // Stop any existing stream first
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      setReady(false);
+      setError("");
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        if (!active) { stream.getTracks().forEach((t) => t.stop()); return; }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => { if (active) setReady(true); };
+        }
+      } catch {
+        if (active) setError("Camera access denied or not available.");
+      }
+    }
+
+    start();
+    return () => {
+      active = false;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, [facingMode]);
+
+  function handleCapture() {
+    const video  = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || !ready) return;
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    onCapture(dataUrl);
+  }
+
+  function handleFlip() {
+    setFacingMode((m) => (m === "environment" ? "user" : "environment"));
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 py-4 shrink-0">
+        <button
+          onClick={onClose}
+          className="text-white text-sm font-medium bg-white/10 rounded-xl px-3 py-1.5"
+        >
+          Cancel
+        </button>
+        <span className="text-white text-sm font-semibold">Take Photo</span>
+        <button
+          onClick={handleFlip}
+          className="text-white text-sm bg-white/10 rounded-xl px-3 py-1.5"
+        >
+          🔄 Flip
+        </button>
+      </div>
+
+      {/* Viewfinder */}
+      <div className="flex-1 relative overflow-hidden bg-black">
+        {error ? (
+          <div className="absolute inset-0 flex items-center justify-center text-white text-center px-8">
+            <div>
+              <p className="text-5xl mb-4">📵</p>
+              <p className="font-semibold text-lg">{error}</p>
+              <p className="text-sm text-gray-400 mt-2">
+                Allow camera access in your browser settings and try again.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
+        )}
+        {!ready && !error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+            <p className="text-white text-sm animate-pulse">Starting camera…</p>
+          </div>
+        )}
+      </div>
+
+      {/* Shutter button */}
+      <div className="flex items-center justify-center py-10 shrink-0 bg-black">
+        <button
+          onClick={handleCapture}
+          disabled={!ready}
+          className="w-20 h-20 rounded-full bg-white disabled:opacity-30 active:scale-95 transition-transform shadow-lg ring-4 ring-white/30"
+        />
+      </div>
+
+      <canvas ref={canvasRef} className="hidden" />
+    </div>
+  );
+}
+
 // ── Report Modal ──────────────────────────────────────────────────────────────
 
 function ReportModal({ user, location, locating, onClose }) {
   const [description, setDescription] = useState("");
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoBase64, setPhotoBase64] = useState(null);
-  const [step, setStep] = useState("form"); // "form" | "analyzing" | "submitting" | "done"
-  const fileRef = useRef(null);
+  const [step,       setStep]       = useState("form"); // "form" | "analyzing" | "submitting" | "done"
+  const [showCamera, setShowCamera] = useState(false);
+  const galleryRef = useRef(null);
 
   const homeCity  = localStorage.getItem("civicCity")  || "";
   const homeState = localStorage.getItem("civicState") || "";
@@ -118,6 +240,12 @@ function ReportModal({ user, location, locating, onClose }) {
       setPhotoBase64(ev.target.result.split(",")[1]);
     };
     reader.readAsDataURL(file);
+  }
+
+  function handleCameraCapture(dataUrl) {
+    setPhotoPreview(dataUrl);
+    setPhotoBase64(dataUrl.split(",")[1]);
+    setShowCamera(false);
   }
 
   async function handleSubmit(e) {
@@ -216,28 +344,37 @@ function ReportModal({ user, location, locating, onClose }) {
                     onClick={() => {
                       setPhotoPreview(null);
                       setPhotoBase64(null);
-                      if (fileRef.current) fileRef.current.value = "";
+                      if (galleryRef.current) galleryRef.current.value = "";
                     }}
                     className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs hover:bg-black/80"
                   >✕</button>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="w-full h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
-                >
-                  <span className="text-3xl">📷</span>
-                  <span className="text-sm font-medium">Tap to add a photo</span>
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCamera(true)}
+                    className="flex-1 h-24 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-1.5 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
+                  >
+                    <span className="text-2xl">📷</span>
+                    <span className="text-xs font-medium">Take Photo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => galleryRef.current?.click()}
+                    className="flex-1 h-24 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-1.5 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
+                  >
+                    <span className="text-2xl">🖼️</span>
+                    <span className="text-xs font-medium">Choose from Gallery</span>
+                  </button>
+                </div>
               )}
               <input
-                ref={fileRef}
+                ref={galleryRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={handlePhoto}
-                className="hidden"
+                className="absolute opacity-0 w-0 h-0 pointer-events-none"
               />
             </div>
 
@@ -285,6 +422,13 @@ function ReportModal({ user, location, locating, onClose }) {
           </form>
         )}
       </div>
+
+      {showCamera && (
+        <CameraModal
+          onCapture={handleCameraCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
     </div>
   );
 }

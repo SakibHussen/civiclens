@@ -49,7 +49,7 @@ export const DEPARTMENT_CONFIG = {
   fire: {
     displayName: "Newark Fire Dept 🚒",
     email:       "fire@civiclens.com",
-    password:    "Fire@Newark2024",
+    password:    "Fx9!qNwk#Fr3Dept",
     issueTypes: [
       "biohazard", "fire_hazard", "chemical_spill", "gas_leak",
       "smoke_odor", "abandoned_fire", "hazardous_material",
@@ -59,7 +59,7 @@ export const DEPARTMENT_CONFIG = {
   water: {
     displayName: "Newark Water Authority 💧",
     email:       "water@civiclens.com",
-    password:    "Water@Newark2024",
+    password:    "Wx7@kNwk#W4trAuth",
     issueTypes: [
       "flooding", "water_leakage", "burst_pipe", "drainage_blockage",
       "sewer_overflow", "manhole_overflow", "water_main_break",
@@ -70,7 +70,7 @@ export const DEPARTMENT_CONFIG = {
   electric: {
     displayName: "Newark Public Works ⚡",
     email:       "electric@civiclens.com",
-    password:    "Electric@Newark2024",
+    password:    "Ex5!mNwk#3lPubWks",
     issueTypes: [
       "electrical_hazard", "broken_streetlight", "downed_power_line",
       "pothole", "road_damage", "broken_infrastructure",

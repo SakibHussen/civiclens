@@ -340,9 +340,11 @@ function AdminReportCard({ report, deptName }) {
 function AdminReportsPanel({ reports, department }) {
   const [filter, setFilter] = useState("all");
 
-  const deptName    = DEPARTMENT_CONFIG[department]?.displayName ?? "Your Department";
-  // Only show reports assigned to this department
-  const deptReports = reports.filter((r) => r.assignedDepartment === department);
+  const deptName = DEPARTMENT_CONFIG[department]?.displayName ?? "All Departments";
+  // null department = general admin → sees everything
+  const deptReports = department
+    ? reports.filter((r) => r.assignedDepartment === department)
+    : reports;
 
   const filtered = filter === "all"
     ? deptReports
@@ -354,8 +356,11 @@ function AdminReportsPanel({ reports, department }) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-gray-200 bg-white shrink-0">
-        <h2 className="font-bold text-gray-900 text-sm">{deptName} Reports</h2>
-        <p className="text-xs text-gray-400 mb-2">{deptReports.length} reports assigned to your department</p>
+        <h2 className="font-bold text-gray-900 text-sm">{deptName}</h2>
+        <p className="text-xs text-gray-400 mb-2">
+          {deptReports.length} report{deptReports.length !== 1 ? "s" : ""}
+          {department ? " assigned to your department" : " across all departments"}
+        </p>
         <div className="flex gap-1 flex-wrap">
           {FILTER_TABS.map((f) => (
             <button key={f.key} onClick={() => setFilter(f.key)}
