@@ -36,6 +36,8 @@ export default function App() {
   const [userRole,    setUserRole]    = useState(null);
   const [userDept,    setUserDept]    = useState(null);
   const [roleLoading, setRoleLoading] = useState(false);
+  // Delay showing loading screen to prevent race condition with auth state
+  const [showLoading, setShowLoading] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthChanged(async (firebaseUser) => {
@@ -56,9 +58,23 @@ export default function App() {
     return unsub;
   }, []);
 
+  // Delay showing loading screen to allow auth state to settle after login
+  useEffect(() => {
+    // If auth is undefined or role is loading, set a timer to show loading screen
+    if (authUser === undefined || roleLoading) {
+      const timer = setTimeout(() => {
+        setShowLoading(true);
+      }, 100); // Small delay to prevent race condition
+      return () => clearTimeout(timer);
+    } else {
+      // Auth is resolved, immediately hide loading screen
+      setShowLoading(false);
+    }
+  }, [authUser, roleLoading]);
+
   // Don't block the /setup page with the loading screen (auth changes during account creation)
   const isSetup = typeof window !== "undefined" && window.location.pathname === "/setup";
-  if (!isSetup && (authUser === undefined || roleLoading)) return <LoadingScreen />;
+  if (!isSetup && showLoading) return <LoadingScreen />;
 
   return (
     <BrowserRouter>
