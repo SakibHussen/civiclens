@@ -295,8 +295,9 @@ function CreateReportView({ user, location, locating, onCreated, onBack }) {
       reportId:   docId,
     });
 
-    // Notify all admins about the new report
-    await notifyAdminsOfNewReport(reportId, analysis.issueType, analysis.summary, deptName, userName);
+
+    // Notify the specific department admin and the citizen who submitted the report
+    await notifyAdminsOfNewReport(reportId, analysis.issueType, analysis.summary, deptName, userName, docId, user.uid);
 
     setSubmittedId(reportId);
     setStep("done");

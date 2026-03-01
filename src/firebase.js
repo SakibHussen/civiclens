@@ -1,3 +1,4 @@
+
 import { initializeApp } from "firebase/app";
 import {
   getFirestore,
@@ -307,23 +308,40 @@ export async function sendNotification({ userId, reportId, type, message }) {
   });
 }
 
-// Notify all admins when a new report is submitted
-export async function notifyAdminsOfNewReport(reportId, issueType, summary, deptName, reporterName) {
+// Notify the specific department admin and the citizen who submitted the report
+export async function notifyAdminsOfNewReport(reportId, issueType, summary, deptName, reporterName, reportDocId, reporterUserId) {
   try {
-    const adminSnap = await getDocs(query(usersCol, where("role", "==", "admin")));
-    const promises = adminSnap.docs.map((adminDoc) =>
-      addDoc(notificationsCol, {
-        userId: adminDoc.id,
-        reportId: null,
-        type: "new_report",
-        message: `📋 New report ${reportId} submitted by ${reporterName}.\nIssue: ${issueType} - ${summary}\nAssigned to: ${deptName}`,
+    // 1. Notify ONLY the admin responsible for this department
+    const deptKey = Object.entries(DEPARTMENT_CONFIG).find(([_, cfg]) => cfg.displayName === deptName)?.[0];
+    
+    if (deptKey) {
+      const adminSnap = await getDocs(query(usersCol, where("role", "==", "admin"), where("department", "==", deptKey)));
+      const adminPromises = adminSnap.docs.map((adminDoc) =>
+        addDoc(notificationsCol, {
+          userId: adminDoc.id,
+          reportId: reportDocId,
+          type: "new_report",
+          message: `📋 New report ${reportId} submitted by ${reporterName}.\nIssue: ${issueType} - ${summary}\nAssigned to: ${deptName}`,
+          read: false,
+          timestamp: serverTimestamp(),
+        })
+      );
+      await Promise.all(adminPromises);
+    }
+
+    // 2. Also notify the citizen who submitted the report
+    if (reporterUserId) {
+      await addDoc(notificationsCol, {
+        userId: reporterUserId,
+        reportId: reportDocId,
+        type: "report_received",
+        message: `✅ Your report ${reportId} has been submitted and assigned to ${deptName} for review.`,
         read: false,
         timestamp: serverTimestamp(),
-      })
-    );
-    await Promise.all(promises);
+      });
+    }
   } catch (e) {
-    console.error("[notifyAdminsOfNewReport] Failed to notify admins:", e);
+    console.error("[notifyAdminsOfNewReport] Failed to notify:", e);
   }
 }
 
@@ -344,3 +362,4 @@ export function listenToNotifications(userId, callback) {
 export async function markNotificationRead(notifId) {
   return updateDoc(doc(db, "notifications", notifId), { read: true });
 }
+
